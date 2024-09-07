@@ -1,13 +1,12 @@
 <script lang="ts" setup>
 const checkLogin = async () => {
-  const token = ref();
   if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-    token.value = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
+    if (token !== null && token !== "") {
+      await navigateTo("/todolist");
+    }
   } else {
     return false;
-  }
-  if (token.value !== null) {
-    await navigateTo("/todolist");
   }
 };
 
@@ -22,29 +21,26 @@ const password = ref("");
 const showLoadding = ref(false);
 const config = useRuntimeConfig();
 const BASE_URL = config.public.apiEndpoint;
-const login = async () => {
-  showLoadding.value = true;
-  try {
-    const response = await $fetch(`${BASE_URL}user/login`, {
-      method: "post",
-      body: {
-        email: email.value,
-        password: password.value,
-      },
-    });
-    localStorage.setItem("token", response.token);
+const showErrorWindow = ref(false);
+const messageError = ref("");
 
-    const token = localStorage.getItem("token");
-    showLoadding.value = false;
-    if (token) {
-      await navigateTo("/todolist");
-    }
-  } catch (err) {
-    console.log(err);
-  }
+const errorWindow = async (message: string) => {
+  showErrorWindow.value = true;
+  messageError.value = message;
 };
 
+const success = ref(false);
+const successMessage = ref("");
+const successWindow = async (message: string) => {
+  successMessage.value = message;
+};
 const register = async () => {
+  if (email.value === "" || password.value === "") {
+    await errorWindow("Please fill in your email and password");
+    return;
+  } else {
+    showLoadding.value = true;
+  }
   try {
     const response = await $fetch(`${BASE_URL}user/register`, {
       method: "post",
@@ -54,10 +50,23 @@ const register = async () => {
       },
     });
     // console.log(response);
-  } catch (err) {
+    success.value = true;
+  } catch (err: any) {
+    showLoadding.value = false;
     console.log(err);
+    await errorWindow(err.data.message);
+  } finally {
+    if (success.value) {
+      showLoadding.value = false;
+      successWindow(`Register "${email.value}" success`);
+    }
   }
-  login();
+};
+
+const finishRegister = async () => {
+  success.value = false;
+  successMessage.value = "";
+  await navigateTo("/login");
 };
 
 const loginPage = async () => {
@@ -69,7 +78,37 @@ const loginPage = async () => {
   <div class="bg-[#454545] h-[100vh] py-[20vh]">
     <div class="flex justify-center z-[2]" v-if="showLoadding">
       <div class="bg-[rgb(38,38,38,.9)] p-[15vw] rounded-xl absolute">
-        <h1 class="text-white text-[5vw]">Loadding ...</h1>
+        <h1 class="text-white text-[5vw]">Registering ...</h1>
+      </div>
+    </div>
+    <div class="flex justify-center z-[2]" v-if="showErrorWindow">
+      <div class="bg-[rgb(38,38,38,.9)] p-[15vh] rounded-xl absolute">
+        <h1 class="text-white text-[4vw]">{{ messageError }}</h1>
+        <div class="flex justify-center mt-5">
+          <button
+            class="text-white text-[3vw] border-2 border-white rounded-lg py-1 px-5"
+            @click="showErrorWindow = false"
+          >
+            ok
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-center z-[2]" v-if="success">
+      <div
+        class="bg-[rgb(38,38,38,.9)] p-[15vh] rounded-xl absolute text-center"
+      >
+        <h1 class="text-white text-[4vw]">{{ successMessage }}</h1>
+        <h1 class="text-white text-[3vw]">back to login page</h1>
+
+        <div class="flex justify-center mt-5">
+          <button
+            class="text-white text-[3vw] border-2 border-white rounded-lg py-1 px-5"
+            @click="finishRegister"
+          >
+            ok
+          </button>
+        </div>
       </div>
     </div>
     <div class="flex justify-center">
@@ -107,7 +146,7 @@ const loginPage = async () => {
     <div class="text-xl p-2 flex justify-center">
       <button
         @click="register"
-        class="text-white py-2 px-5 border-black border-2 rounded-lg"
+        class="text-white py-2 px-5 border-white border-2 rounded-lg"
       >
         Register
       </button>

@@ -1,13 +1,12 @@
 <script lang="ts" setup>
 const checkLogin = async () => {
-  const token = ref();
   if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-    token.value = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
+    if (token === null && token === "") {
+      await navigateTo("/login");
+    }
   } else {
     return false;
-  }
-  if (token.value === null) {
-    await navigateTo("/login");
   }
 };
 checkLogin();
@@ -39,8 +38,12 @@ const getUsers = async () => {
     });
     // console.log(response);
     user.value = response;
-  } catch (err) {
-    console.log(err);
+  } catch (err: any) {
+    console.error(err);
+    if (err.response.status === 403) {
+      localStorage.removeItem("token");
+      navigateTo("/login");
+    }
   }
 };
 
@@ -53,8 +56,12 @@ const loadTodo = async () => {
       headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
     });
     todos.value = response;
-  } catch (err) {
-    console.log(err);
+  } catch (err: any) {
+    console.error(err);
+    if (err.response.status === 403) {
+      localStorage.removeItem("token");
+      navigateTo("/login");
+    }
   }
   loadding.value = false;
   showLoadding.value = false;
@@ -77,7 +84,7 @@ const CloseWindowAddTodo = () => {
 };
 const submit = async () => {
   if (!title.value || !Description.value) {
-    return console.log("Data isn't complete");
+    return console.error("Data isn't complete");
   }
   const authtoken = localStorage.getItem("token");
   await $fetch(`${BASE_URL}todo/add`, {
@@ -124,10 +131,9 @@ const closeFull = () => {
 
 const editSubmit = async () => {
   if (!fullTitle.value || !fullDescription.value) {
-    return console.log("Data isn't complete");
+    return console.error("Data isn't complete");
   }
   const authtoken = localStorage.getItem("token");
-  let change = ref(0);
   if (fullTitle.value !== fullData.value.title) {
     await $fetch(`${BASE_URL}todo/update/${fullId.value}`, {
       method: "put",
@@ -139,8 +145,6 @@ const editSubmit = async () => {
         email: user.value.email,
       },
     });
-  } else {
-    change.value += 1;
   }
   if (fullDescription.value !== fullData.value.description) {
     await $fetch(`${BASE_URL}todo/update/${fullId.value}`, {
@@ -153,8 +157,6 @@ const editSubmit = async () => {
         email: user.value.email,
       },
     });
-  } else {
-    change.value += 1;
   }
   if (fullStatus.value !== fullData.value.status) {
     await $fetch(`${BASE_URL}todo/update/${fullId.value}`, {
@@ -167,13 +169,7 @@ const editSubmit = async () => {
         email: user.value.email,
       },
     });
-  } else {
-    change.value += 1;
   }
-  if (change.value <= 0) {
-    return console.log("No change anything");
-  }
-
   closeFull();
   loadTodo();
 };
@@ -202,7 +198,6 @@ const deleteTodo = async (send: boolean) => {
 
 const logOut = async () => {
   localStorage.removeItem("token");
-  // console.log("logout success");
   await navigateTo("/login");
 };
 
