@@ -17,8 +17,8 @@ useHead({
   title: "Todolist - Login",
 });
 
-const email = ref("test@mail.com");
-const password = ref("1234");
+const email = ref("");
+const password = ref("");
 const showLoadding = ref(false);
 const config = useRuntimeConfig();
 const BASE_URL = config.public.apiEndpoint;
