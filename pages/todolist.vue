@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 const checkLogin = async () => {
-  const token = localStorage.getItem("token");
-  if (!token) {
+  const token = ref();
+  if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+    token.value = localStorage.getItem("token");
+  } else {
+    return false;
+  }
+  if (token.value === null) {
     await navigateTo("/login");
   }
 };
@@ -15,7 +20,8 @@ const config = useRuntimeConfig();
 const BASE_URL = config.public.apiEndpoint;
 const user = ref();
 const todos = ref();
-
+const loadding = ref(true);
+const showLoadding = ref(false);
 type todos = {
   title: String;
   description: String;
@@ -39,6 +45,8 @@ const getUsers = async () => {
 };
 
 const loadTodo = async () => {
+  loadding.value = true;
+  showLoadding.value = true;
   try {
     const response = await $fetch(`${BASE_URL}todo/get`, {
       method: "get",
@@ -48,6 +56,8 @@ const loadTodo = async () => {
   } catch (err) {
     console.log(err);
   }
+  loadding.value = false;
+  showLoadding.value = false;
   // console.log({ response: response });
   // console.log({ todo: todos.value });
 };
@@ -192,7 +202,7 @@ const deleteTodo = async (send: boolean) => {
 
 const logOut = async () => {
   localStorage.removeItem("token");
-  console.log("logout success");
+  // console.log("logout success");
   await navigateTo("/login");
 };
 
@@ -387,9 +397,14 @@ loadTodo();
         </p>
       </div>
       <div v-if="!todos || todos.length === 0" class="flex justify-center p-7">
-        <p class="text-2xl">
+        <p class="text-2xl" v-if="!loadding">
           You don't have a To-Do list.<br />Let's add your to-do list.
         </p>
+      </div>
+      <div class="flex justify-center z-[2]" v-if="showLoadding">
+        <div class="p-[10vw] rounded-xl">
+          <h1 class="text-black text-[5vw]">Loadding Todo List ...</h1>
+        </div>
       </div>
     </div>
   </div>

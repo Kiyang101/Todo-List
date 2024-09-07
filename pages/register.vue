@@ -1,20 +1,29 @@
 <script lang="ts" setup>
 const checkLogin = async () => {
-  const token = localStorage.getItem("token");
-  if (token) {
+  const token = ref();
+  if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+    token.value = localStorage.getItem("token");
+  } else {
+    return false;
+  }
+  if (token.value !== null) {
     await navigateTo("/todolist");
   }
 };
+
 checkLogin();
+
 useHead({
   title: "Todolist - Register",
 });
 
 const email = ref("");
 const password = ref("");
+const showLoadding = ref(false);
 const config = useRuntimeConfig();
 const BASE_URL = config.public.apiEndpoint;
 const login = async () => {
+  showLoadding.value = true;
   try {
     const response = await $fetch(`${BASE_URL}user/login`, {
       method: "post",
@@ -26,6 +35,7 @@ const login = async () => {
     localStorage.setItem("token", response.token);
 
     const token = localStorage.getItem("token");
+    showLoadding.value = false;
     if (token) {
       await navigateTo("/todolist");
     }
@@ -57,6 +67,11 @@ const loginPage = async () => {
 
 <template>
   <div class="bg-[#454545] h-[100vh] py-[20vh]">
+    <div class="flex justify-center z-[2]" v-if="showLoadding">
+      <div class="bg-[rgb(38,38,38,.9)] p-[15vw] rounded-xl absolute">
+        <h1 class="text-white text-[5vw]">Loadding ...</h1>
+      </div>
+    </div>
     <div class="flex justify-center">
       <div class="p-5">
         <h1 class="text-5xl text-white">To-Do List</h1>
